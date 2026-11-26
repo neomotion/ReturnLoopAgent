@@ -8,3 +8,4 @@ numpy
 langgraph
 langgraph-checkpoint-sqlite
 pillow
+huggingface_hub
