@@ -26,6 +26,28 @@ def score(rows, preds):
             "damage_f1": round(2 * tp / max(2 * tp + fp + fn, 1), 3),
             "product_accuracy": round(product_ok / len(rows), 3), "unreadable": unreadable}
 
+def apply_threshold(preds, probs, t):
+    # "damaged" when the model's probability of answering true is at least t
+    return [p | {"shows_damage": prob >= t} for p, prob in zip(preds, probs)]
+
+def pick_threshold(rows, preds, probs, min_precision=0.95):
+    # highest recall that keeps damage precision >= min_precision (fake claims stay out)
+    best, best_recall = 0.5, -1
+    for t in [i / 100 for i in range(5, 96)]:
+        s = score(rows, apply_threshold(preds, probs, t))
+        if s["damage_precision"] >= min_precision and s["damage_recall"] > best_recall:
+            best, best_recall = t, s["damage_recall"]
+    return best
+
+def recall_by_defect(rows, preds):
+    # which kinds of damage the model misses
+    found = {}
+    for r, p in zip(rows, preds):
+        if r["shows_damage"]:
+            hit, total = found.get(r["defect"], (0, 0))
+            found[r["defect"]] = (hit + (p.get("shows_damage") is True), total + 1)
+    return {d: f"{hit}/{total}" for d, (hit, total) in sorted(found.items(), key=lambda x: x[1][0] / x[1][1])}
+
 def gemini(row):
     from llm_config import client, MODEL   # imported here so Colab can use score() without a Gemini key
     image = base64.b64encode((OUT / row["image"]).read_bytes()).decode()
