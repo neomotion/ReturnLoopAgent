@@ -54,6 +54,7 @@ CLAIMS = [
 
 # build the db
 DB.unlink(missing_ok=True)
+(DB.parent / "checkpoints.db").unlink(missing_ok=True)   # fresh run of graph.py too
 db = sqlite3.connect(DB)
 db.execute("create table customers (id, name, account_age_days, past_orders, past_returns)")
 db.execute("create table orders (id, customer_id, product, price)")

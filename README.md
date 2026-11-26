@@ -7,6 +7,18 @@ the customer's history, the carrier status and the merchant policy, then decides
 The tools run behind an **MCP server**. Policy rules come from **hybrid search** (BM25 + embeddings,
 reciprocal rank fusion) over 5 policy documents, and every verdict must cite the policy sections
 it used. Citations the agent never retrieved are flagged as ungrounded.
+
+`graph.py` runs the same job as a **LangGraph** graph of specialist agents, each with its own prompt
+and only its own MCP tools:
+
+```
+load_claim -> evidence agent (customer, delivery) -> policy agent (search_policy) -> decide
+                                                                     decide -> review? -> human_review (interrupt) -> END
+                                                                            -> else   -> finish -> END
+```
+
+Review cases pause for a human approve/reject. Every step is checkpointed to SQLite, so a run killed
+at the review prompt resumes exactly there, without redoing finished claims or agent calls.
 See `CLAUDE.md` for the coding rules and the full plan.
 
 ```
@@ -15,6 +27,7 @@ copy .env.example .env
 py data\make_data.py
 py search.py
 py agent.py
+py graph.py
 ```
 
 | File | What |
@@ -24,7 +37,8 @@ py agent.py
 | `data/policy_questions.json` | 20 labelled questions for the search eval |
 | `search.py` | chunking, BM25 + dense + RRF hybrid search, recall@3 / MRR eval |
 | `mcp_server.py` | MCP server: get_claim, get_customer, get_delivery, search_policy |
-| `agent.py` | MCP client + tool-calling loop, cited verdict, accuracy and grounding vs expected |
+| `agent.py` | single agent: MCP client + tool-calling loop, cited verdict, accuracy and grounding vs expected |
+| `graph.py` | multi-agent LangGraph: evidence + policy agents, decide, human review via interrupt, SQLite checkpoints |
 | `llm_config.py` | Gemini client through the OpenAI library |
 
 ## Results
