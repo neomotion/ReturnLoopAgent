@@ -18,5 +18,7 @@
   {"q": "not received", "gold": "delivery#delivered-with-proof"},
   {"q": "not received, carrier says lost", "gold": "delivery#lost-by-carrier"},
   {"q": "changed mind", "gold": "returns#change-of-mind"},
-  {"q": "damaged", "gold": "damage#damaged-item"}
+  {"q": "damaged", "gold": "damage#damaged-item"},
+  {"q": "photo shows no damage", "gold": "risk#photo-does-not-match-the-claim"},
+  {"q": "same picture was used in an older claim", "gold": "risk#reused-photo"}
 ]
