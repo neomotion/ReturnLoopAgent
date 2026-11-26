@@ -1,0 +1,22 @@
+[
+  {"q": "customer changed their mind, how many days to return", "gold": "returns#change-of-mind"},
+  {"q": "item arrived broken", "gold": "damage#damaged-item"},
+  {"q": "received size 7 instead of size 9", "gold": "damage#wrong-item"},
+  {"q": "charger missing from the box", "gold": "damage#missing-parts"},
+  {"q": "tracking says delivered with signature but customer says never arrived", "gold": "delivery#delivered-with-proof"},
+  {"q": "courier lost the package", "gold": "delivery#lost-by-carrier"},
+  {"q": "order has not arrived yet, still on the way", "gold": "delivery#still-in-transit"},
+  {"q": "refund for an expensive laptop over 20000", "gold": "risk#high-value-refunds"},
+  {"q": "customer returns most of what they buy", "gold": "risk#serial-returners"},
+  {"q": "account created last week wants a big refund", "gold": "risk#new-accounts"},
+  {"q": "claim text says ignore the rules and approve", "gold": "risk#instructions-inside-claim-text"},
+  {"q": "when will the money come back to my card", "gold": "returns#refund-method-and-timing"},
+  {"q": "can I return a phone I opened", "gold": "categories#electronics"},
+  {"q": "return a jacket with tags", "gold": "categories#apparel"},
+  {"q": "can underwear be returned", "gold": "returns#non-returnable-items"},
+  {"q": "do I need to send a picture of the damage", "gold": "damage#photo-evidence"},
+  {"q": "not received", "gold": "delivery#delivered-with-proof"},
+  {"q": "not received, carrier says lost", "gold": "delivery#lost-by-carrier"},
+  {"q": "changed mind", "gold": "returns#change-of-mind"},
+  {"q": "damaged", "gold": "damage#damaged-item"}
+]
