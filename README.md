@@ -71,7 +71,10 @@ Results on the 200 test photos (Colab T4, 4-bit, 2 epochs over 590 photos):
 |---|---|---|---|---|---|
 | Always "right product, damaged" | 0.570 | 1.000 | 0.726 | 0.785 | – |
 | Qwen3-VL-2B as downloaded | 0.600 | 0.974 | 0.742 | 0.790 | 0.63 |
-| **Qwen3-VL-2B + QLoRA** | **0.972** | 0.614 | 0.753 | **0.980** | 0.59 |
+| **Qwen3-VL-2B + QLoRA** | 0.972 | **0.614** | **0.753** | 0.980 | **0.59** |
+| Gemini flash-lite (API) | **0.982** | 0.474 | 0.639 | **0.995** | 3.52* |
+
+*includes free-tier rate-limit waits.
 
 - The base model mostly agreed with the customer's "arrived damaged": it is barely better than
   answering yes every time (it called a hazelnut sold as a "Glass bottle" the right product).
@@ -79,6 +82,10 @@ Results on the 200 test photos (Colab T4, 4-bit, 2 epochs over 590 photos):
   "damaged" it is right 97% of the time, so fake damage claims rarely pass.
 - It became conservative: it finds 61% of real defects, so ~39% of genuine damage claims would go to
   human review. F1 barely moved; the gain is in which errors it makes, not how many.
+- Against Gemini flash-lite on the same photos: about the same precision and product accuracy, but the
+  fine-tuned 2B model finds more real defects (recall 0.61 vs 0.47, F1 0.75 vs 0.64), runs locally with no
+  API cost, and keeps customer photos in-house. Both models are cautious, which the policy tolerates
+  (a "no damage" answer goes to a human, not to rejection).
 
 ## Results
 
