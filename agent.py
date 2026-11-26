@@ -31,12 +31,9 @@ def to_openai(tool):
     return {"type": "function", "function": {
         "name": tool.name, "description": tool.description, "parameters": tool.input_schema}}
 
-async def run(mcp, tools, claim_id):
-    messages = [{"role": "system", "content": SYSTEM},
-                {"role": "user", "content": f"Investigate claim {claim_id}."}]
-    seen = set()   # policy section ids the agent actually retrieved
-
-    # loop: the model calls MCP tools until it has what it needs
+async def tool_loop(mcp, tools, messages):
+    # the model calls MCP tools until it has what it needs; returns policy ids it retrieved
+    seen = set()
     for step in range(MAX_STEPS):
         reply = client.chat.completions.create(
             model=MODEL, temperature=0, messages=messages, tools=tools).choices[0].message
@@ -50,6 +47,12 @@ async def run(mcp, tools, claim_id):
             if call.function.name == "search_policy":
                 seen |= {r["id"] for r in json.loads(result)["results"]}
             messages.append({"role": "tool", "tool_call_id": call.id, "content": result})
+    return seen
+
+async def run(mcp, tools, claim_id):
+    messages = [{"role": "system", "content": SYSTEM},
+                {"role": "user", "content": f"Investigate claim {claim_id}."}]
+    seen = await tool_loop(mcp, tools, messages)
 
     # final structured verdict
     messages.append({"role": "user", "content": "Give your final verdict."})
