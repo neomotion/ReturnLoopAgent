@@ -25,8 +25,9 @@ How that looks in practice (taken from `tool_calling_loop.py`, `speed_test_json.
 - **Small functions** that do one thing and return a value (often a dict).
 - **LLM calls** look the same everywhere: `client.chat.completions.create(model=MODEL, temperature=0, messages=...)`.
   Structured output with `client.chat.completions.parse(..., response_format=SomeModel)`.
-- **Tools** = a Python function + a JSON-schema entry in `TOOLS` + a `FUNCTIONS = {"name": fn}` map.
-  Tool results go back as `json.dumps(result)`. A tool returns `{"error": "..."}` instead of raising.
+- **Tools** live in `mcp_server.py` as `@mcp.tool()` functions: type hints + a one-line docstring
+  are the schema the model sees. A tool returns a dict, and `{"error": "..."}` instead of raising.
+  (Outside MCP: a function + a JSON-schema entry in `TOOLS` + a `FUNCTIONS = {"name": fn}` map.)
 - **Loops have a hard cap**: `for step in range(MAX_STEPS):` and break on the final answer.
 - **Print what happens** (tool calls, matches, verdicts) so a run explains itself. No logging library.
 - **Paths** with `pathlib`, relative to `__file__`.
@@ -39,8 +40,8 @@ How that looks in practice (taken from `tool_calling_loop.py`, `speed_test_json.
 
 | Phase | What | Learn |
 |---|---|---|
-| 1 | Single agent: claim, customer, delivery, policy tools; structured verdict; score vs expected | tool loop, structured output |
-| 2 | Tools as an MCP server; policy RAG (hybrid search + citations) over policy docs | MCP, agentic RAG |
+| 1 ✅ | Single agent: claim, customer, delivery, policy tools; structured verdict; score vs expected | tool loop, structured output |
+| 2 ✅ | Tools as an MCP server; policy RAG (hybrid search + citations) over policy docs | MCP, agentic RAG |
 | 3 | LangGraph supervisor + specialist agents, human approval via `interrupt()`, Postgres checkpointer | multi-agent, HITL, durability |
 | 4 | Vision agent (damage photos, reused-photo check) | multimodal |
 | 5 | Golden set (200 cases), LLM judge with κ, trajectory checks, CI gate | evals |
@@ -55,9 +56,19 @@ How that looks in practice (taken from `tool_calling_loop.py`, `speed_test_json.
 py -m pip install -r requirements.txt
 copy .env.example .env      (then put your key in .env)
 py data\make_data.py        (creates data\returnloop.db)
-py agent.py                 (runs every claim, prints verdict vs expected)
+py search.py                (policy search eval: recall@3 / MRR for bm25, dense, hybrid)
+py agent.py                 (starts the MCP server, runs every claim, prints verdict vs expected)
 ```
+
+## Testing
+
+Test every stage before pushing, and check it does what we expect, not just that it runs:
+- run each script and read the output (e.g. `py search.py` recall must not drop);
+- run the agent end to end with a fake LLM (Gemini is not reachable from Claude's workspace),
+  including a planted mistake to prove the checks catch it;
+- report measured numbers. Sahil runs `py agent.py` with the real model and shares the output.
 
 ## Git
 
 Small commits, one change each, message says what changed (`add delivery tool`). Push after every update.
+Commits are authored by `neomotion`. No Claude / AI attribution anywhere (no Co-Authored-By lines).

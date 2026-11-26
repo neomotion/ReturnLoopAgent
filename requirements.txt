@@ -1,3 +1,7 @@
 openai
 pydantic
 python-dotenv
+mcp==2.3.0
+rank_bm25
+model2vec
+numpy
