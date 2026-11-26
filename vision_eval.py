@@ -15,7 +15,8 @@ def parse(text):
         return {}
 
 def score(rows, preds):
-    # damage: recall matters most (a missed defect = a wrongly rejected customer)
+    # damage precision: a false "damaged" lets a fake claim through the photo check
+    # damage recall: a missed defect sends a genuine claim to human review (policy), costing reviewer time
     tp = sum(r["shows_damage"] and p.get("shows_damage") is True for r, p in zip(rows, preds))
     fp = sum(not r["shows_damage"] and p.get("shows_damage") is True for r, p in zip(rows, preds))
     fn = sum(r["shows_damage"] and p.get("shows_damage") is not True for r, p in zip(rows, preds))

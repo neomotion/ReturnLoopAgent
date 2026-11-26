@@ -59,14 +59,26 @@ every photo sent to an API costs money.
 
 - `vision_data.py`: 790 real photos from MVTec AD (10 products, damaged and good, CC BY-NC-SA 4.0),
   20% paired with the wrong product name. 590 train / 200 test (114 damaged, 43 wrong product).
-- `vision_eval.py`: one prompt and one `score()` for every model: damage precision / recall / F1
-  (recall matters most: a missed defect is a wrongly rejected customer), product accuracy, seconds per photo.
+- `vision_eval.py`: one prompt and one `score()` for every model: damage precision / recall / F1,
+  product accuracy, seconds per photo. In the policy a "no damage" answer sends the claim to human review,
+  so a false "damaged" (precision) lets a fake claim through, a missed defect (recall) costs reviewer time.
 - `train_vision.ipynb`: Colab T4. Evaluates Qwen3-VL-2B (4-bit) as downloaded, fine-tunes it with QLoRA
   (Unsloth, LoRA r=16 on vision + language layers, 2 epochs), evaluates again.
 
-Reference: answering "right product, damaged" for every photo scores damage F1 0.726, product accuracy 0.785.
-The untuned Qwen3-VL-2B did exactly that on a 12-photo CPU check: it agreed with the customer's
-"arrived damaged" every time, even for a hazelnut sold as a "Glass bottle".
+Results on the 200 test photos (Colab T4, 4-bit, 2 epochs over 590 photos):
+
+| | damage precision | damage recall | damage F1 | product accuracy | sec/photo |
+|---|---|---|---|---|---|
+| Always "right product, damaged" | 0.570 | 1.000 | 0.726 | 0.785 | – |
+| Qwen3-VL-2B as downloaded | 0.600 | 0.974 | 0.742 | 0.790 | 0.63 |
+| **Qwen3-VL-2B + QLoRA** | **0.972** | 0.614 | 0.753 | **0.980** | 0.59 |
+
+- The base model mostly agreed with the customer's "arrived damaged": it is barely better than
+  answering yes every time (it called a hazelnut sold as a "Glass bottle" the right product).
+- After QLoRA it actually checks the photo: the product check went from 0.79 to 0.98, and when it says
+  "damaged" it is right 97% of the time, so fake damage claims rarely pass.
+- It became conservative: it finds 61% of real defects, so ~39% of genuine damage claims would go to
+  human review. F1 barely moved; the gain is in which errors it makes, not how many.
 
 ## Results
 
