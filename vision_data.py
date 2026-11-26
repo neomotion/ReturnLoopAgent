@@ -10,6 +10,7 @@ REPO = "Voxel51/mvtec-ad"
 OUT = Path(__file__).parent / "data" / "vision"
 PER_CLASS = 40   # up to 40 damaged + 40 good photos per product
 TEST_SIZE = 200
+VAL_SIZE = 100   # for choosing the damage threshold, never the test set
 PRODUCTS = {"bottle": "Glass bottle", "cable": "Power cable", "capsule": "Medicine capsule",
             "hazelnut": "Hazelnut", "metal_nut": "Metal nut", "pill": "Pill tablet", "screw": "Screw",
             "toothbrush": "Toothbrush", "transistor": "Transistor", "zipper": "Zipper"}
@@ -37,20 +38,21 @@ def pick(samples):
                 rows.append({"file": s["filepath"], "category": category, "defect": s["defect"]["label"],
                              "product": PRODUCTS[product], "shows_product": not wrong, "shows_damage": damaged})
     rnd.shuffle(rows)
-    return rows[TEST_SIZE:], rows[:TEST_SIZE]
+    val_end = TEST_SIZE + VAL_SIZE
+    return rows[val_end:], rows[TEST_SIZE:val_end], rows[:TEST_SIZE]
 
 if __name__ == "__main__":
     samples = json.loads(Path(hf_hub_download(REPO, "samples.json", repo_type="dataset")).read_text())["samples"]
-    train, test = pick(samples)
-    print(f"train {len(train)}  test {len(test)}  damaged in test {sum(r['shows_damage'] for r in test)}"
+    train, val, test = pick(samples)
+    print(f"train {len(train)}  val {len(val)}  test {len(test)}  damaged in test {sum(r['shows_damage'] for r in test)}"
           f"  wrong product in test {sum(not r['shows_product'] for r in test)}")
 
     # download only the photos we use, shrink them to 448px JPEGs
-    raw = snapshot_download(REPO, repo_type="dataset", allow_patterns=[r["file"] for r in train + test])
+    raw = snapshot_download(REPO, repo_type="dataset", allow_patterns=[r["file"] for r in train + val + test])
     (OUT / "img").mkdir(parents=True, exist_ok=True)
-    for r in train + test:
+    for r in train + val + test:
         r["image"] = f"img/{r['file'].replace('/', '_').replace('.png', '.jpg')}"
         Image.open(Path(raw) / r["file"]).convert("RGB").resize((448, 448)).save(OUT / r["image"], quality=90)
-    for name, rows in [("train", train), ("test", test)]:
+    for name, rows in [("train", train), ("val", val), ("test", test)]:
         (OUT / f"{name}.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")
     print(f"wrote {OUT}")
