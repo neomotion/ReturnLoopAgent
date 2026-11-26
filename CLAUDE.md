@@ -7,7 +7,7 @@ Built to learn production agent engineering and to be a resume project.
 - Local folder: `D:\sahil\ReturnLoopAgent` (Windows, run with `py`)
 - GitHub: https://github.com/neomotion/ReturnLoopAgent (push after every update)
 - LLM: Gemini through the OpenAI library (`llm_config.py`, key in `.env`)
-- Data: synthetic only. Never use Pinch data or code.
+- Data: synthetic, or public datasets (MVTec AD for the vision model). Never use Pinch data or code.
 
 ## Coding rules (read before writing any code)
 
@@ -47,7 +47,8 @@ How that looks in practice (taken from `tool_calling_loop.py`, `speed_test_json.
 | 5 | Golden set (200 cases), LLM judge with κ, trajectory checks, CI gate | evals |
 | 6 | Prompt-injection red-team suite, tool permissions | security |
 | 7 | Langfuse tracing, cost/latency per case, model routing, caching | observability, cost |
-| 8 | Merchant memory from reviewer overrides; LoRA-distilled triage model | memory, fine-tuning |
+| 4b | Local vision model: Qwen3-VL-2B fine-tuned with QLoRA on real defect photos (MVTec AD) in Colab; base vs tuned vs Gemini on the same 200-photo test set | fine-tuning, VLMs |
+| 8 | Merchant memory from reviewer overrides | memory |
 | 9 | FastAPI streaming + UI, Docker, deploy | serving |
 
 ## Run
@@ -60,6 +61,9 @@ py photos.py                (perceptual hash check: md5 vs dHash distances)
 py search.py                (policy search eval: recall@3 / MRR for bm25, dense, hybrid)
 py agent.py                 (single agent: starts the MCP server, runs every claim, prints verdict vs expected)
 py graph.py                 (multi-agent graph; asks you approve/reject for review cases; resumes after a restart)
+py vision_data.py           (downloads ~1 GB once: 590 train / 200 test real defect photos into data\vision)
+py vision_eval.py           (Gemini on the 200 test photos: damage precision/recall/F1, product accuracy)
+train_vision.ipynb          (Colab T4: base Qwen3-VL-2B eval, QLoRA fine-tune, tuned eval)
 ```
 
 ## Testing

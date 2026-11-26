@@ -46,8 +46,27 @@ py graph.py
 | `search.py` | chunking, BM25 + dense + RRF hybrid search, recall@3 / MRR eval |
 | `mcp_server.py` | MCP server: get_claim, get_customer, get_delivery, check_photo_reuse, search_policy |
 | `agent.py` | single agent: MCP client + tool-calling loop, cited verdict, accuracy and grounding vs expected |
+| `vision_data.py` | builds the MVTec AD train/test sets and the shared prompt |
+| `vision_eval.py` | scoring + Gemini run on the vision test set |
+| `train_vision.ipynb` | Colab: base eval, QLoRA fine-tune of Qwen3-VL-2B, tuned eval |
 | `graph.py` | multi-agent LangGraph: evidence agent, vision, policy agent, decide, human review via interrupt, SQLite checkpoints |
 | `llm_config.py` | Gemini client through the OpenAI library |
+
+## Local vision model (QLoRA)
+
+Can a small local model replace Gemini for the photo check? Customer photos are private, and at volume
+every photo sent to an API costs money.
+
+- `vision_data.py`: 790 real photos from MVTec AD (10 products, damaged and good, CC BY-NC-SA 4.0),
+  20% paired with the wrong product name. 590 train / 200 test (114 damaged, 43 wrong product).
+- `vision_eval.py`: one prompt and one `score()` for every model: damage precision / recall / F1
+  (recall matters most: a missed defect is a wrongly rejected customer), product accuracy, seconds per photo.
+- `train_vision.ipynb`: Colab T4. Evaluates Qwen3-VL-2B (4-bit) as downloaded, fine-tunes it with QLoRA
+  (Unsloth, LoRA r=16 on vision + language layers, 2 epochs), evaluates again.
+
+Reference: answering "right product, damaged" for every photo scores damage F1 0.726, product accuracy 0.785.
+The untuned Qwen3-VL-2B did exactly that on a 12-photo CPU check: it agreed with the customer's
+"arrived damaged" every time, even for a hazelnut sold as a "Glass bottle".
 
 ## Results
 
