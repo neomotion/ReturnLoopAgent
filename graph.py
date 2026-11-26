@@ -125,7 +125,7 @@ builder.add_edge("finish", END)
 
 # ---- run every claim; a claim paused for review survives a restart ----
 async def main():
-    claims = sqlite3.connect(ROOT / "data" / "returnloop.db").execute("select id, expected from claims").fetchall()
+    claims = sqlite3.connect(ROOT / "data" / "returnloop.db").execute("select id, expected from claims where id like 'k%'").fetchall()
     async with Client(SERVER) as mcp, AsyncSqliteSaver.from_conn_string(str(CHECKPOINTS)) as saver:
         ctx["mcp"] = mcp
         ctx["tools"] = [to_openai(t) for t in (await mcp.list_tools()).tools]

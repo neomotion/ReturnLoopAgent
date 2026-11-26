@@ -19,7 +19,7 @@ def one(sql, *args):
 @mcp.tool()
 def get_claim(claim_id: str) -> dict:
     """Get a return claim (type, customer text) and its order (product, price, customer_id). claim_id like k1."""
-    row = one("""select k.id, k.type, k.text, k.photo, o.id as order_id, o.customer_id, o.product, o.price
+    row = one("""select k.id, k.type, k.text, k.photo, o.id as order_id, o.customer_id, o.product, o.category, o.price
                  from claims k join orders o on o.id = k.order_id where k.id = ?""", claim_id)
     return row or {"error": f"no claim {claim_id}"}
 

@@ -61,7 +61,7 @@ async def run(mcp, tools, claim_id):
     return v, [c for c in v.citations if c not in seen]   # citations it never retrieved = ungrounded
 
 async def main():
-    claims = sqlite3.connect(ROOT / "data" / "returnloop.db").execute("select id, expected from claims").fetchall()
+    claims = sqlite3.connect(ROOT / "data" / "returnloop.db").execute("select id, expected from claims where id like 'k%'").fetchall()
     async with Client(SERVER) as mcp:
         tools = [to_openai(t) for t in (await mcp.list_tools()).tools]
         correct = grounded = 0
