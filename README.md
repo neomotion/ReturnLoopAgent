@@ -58,12 +58,15 @@ Can a small local model replace Gemini for the photo check? Customer photos are 
 every photo sent to an API costs money.
 
 - `vision_data.py`: 790 real photos from MVTec AD (10 products, damaged and good, CC BY-NC-SA 4.0),
-  20% paired with the wrong product name. 590 train / 200 test (114 damaged, 43 wrong product).
+  20% paired with the wrong product name. 490 train / 100 val / 200 test (114 damaged, 43 wrong product).
+  The val split was added after the first run (which trained on 590); the 200 test photos never changed.
 - `vision_eval.py`: one prompt and one `score()` for every model: damage precision / recall / F1,
   product accuracy, seconds per photo. In the policy a "no damage" answer sends the claim to human review,
   so a false "damaged" (precision) lets a fake claim through, a missed defect (recall) costs reviewer time.
 - `train_vision.ipynb`: Colab T4. Evaluates Qwen3-VL-2B (4-bit) as downloaded, fine-tunes it with QLoRA
-  (Unsloth, LoRA r=16 on vision + language layers, 2 epochs), evaluates again.
+  (Unsloth, LoRA r=16 on vision + language layers, 2 epochs), evaluates again. Besides the model's
+  true/false answer it reads the probability of `true` for shows_damage, picks the threshold on val
+  (highest recall with precision >= 0.95), applies it once to test, and reports recall per defect type.
 
 Results on the 200 test photos (Colab T4, 4-bit, 2 epochs over 590 photos):
 
