@@ -7,3 +7,4 @@ model2vec
 numpy
 langgraph
 langgraph-checkpoint-sqlite
+pillow
