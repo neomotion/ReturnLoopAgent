@@ -44,7 +44,7 @@ How that looks in practice (taken from `tool_calling_loop.py`, `speed_test_json.
 | 2 ✅ | Tools as an MCP server; policy RAG (hybrid search + citations) over policy docs | MCP, agentic RAG |
 | 3 ✅ | LangGraph graph of specialist agents (evidence, policy, decide), human approval via `interrupt()`, SQLite checkpointer (Postgres when deployed) | multi-agent, HITL, durability |
 | 4 ✅ | Vision step (does the photo show the damage?) + reused-photo check with a perceptual hash | multimodal |
-| 5 | Golden set (200 cases), LLM judge with κ, trajectory checks, CI gate | evals |
+| 5 ✅ | Policy as code (`policy_rules.py`) labels a 200-case golden set; `evaluate.py` (accuracy, confusion, required-rule recall, grounding, gate); reply judge with Cohen's κ; pytest + GitHub Actions | evals |
 | 6 | Prompt-injection red-team suite, tool permissions | security |
 | 7 | Langfuse tracing, cost/latency per case, model routing, caching | observability, cost |
 | 4b | Local vision model: Qwen3-VL-2B fine-tuned with QLoRA on real defect photos (MVTec AD) in Colab; base vs tuned vs Gemini on the same 200-photo test set | fine-tuning, VLMs |
@@ -61,6 +61,10 @@ py photos.py                (perceptual hash check: md5 vs dHash distances)
 py search.py                (policy search eval: recall@3 / MRR for bm25, dense, hybrid)
 py agent.py                 (single agent: starts the MCP server, runs every claim, prints verdict vs expected)
 py graph.py                 (multi-agent graph; asks you approve/reject for review cases; resumes after a restart)
+py evaluate.py [n]          (graph on the 9 hand claims + n golden ones; exits 1 if the gate fails)
+py judge.py label           (you grade the replies from the last evaluate run)
+py judge.py                 (LLM judge vs your grades: agreement + Cohen's kappa)
+pytest tests                (fake model, no API key: data, search, photos, eval gate, judge, vision eval)
 py vision_data.py           (downloads ~1 GB once: 590 train / 200 test real defect photos into data\vision)
 py vision_eval.py           (Gemini on the 200 test photos: damage precision/recall/F1, product accuracy)
 train_vision.ipynb          (Colab T4: base Qwen3-VL-2B eval, QLoRA fine-tune, tuned eval)
@@ -69,10 +73,12 @@ train_vision.ipynb          (Colab T4: base Qwen3-VL-2B eval, QLoRA fine-tune, t
 ## Testing
 
 Test every stage before pushing, and check it does what we expect, not just that it runs:
-- run each script and read the output (e.g. `py search.py` recall must not drop);
-- run the agent end to end with a fake LLM (Gemini is not reachable from Claude's workspace),
-  including a planted mistake to prove the checks catch it;
-- report measured numbers. Sahil runs `py agent.py` with the real model and shares the output.
+- `pytest tests` must pass (GitHub Actions runs it on every push). New behaviour gets a test in `tests/`.
+- `tests/fake_llm.py` is a fake Gemini that behaves like a good agent; planted mistakes (FAKE_WRONG,
+  FAKE_UNGROUNDED, FAKE_SKIP_RISK) prove the checks catch problems. Gemini is not reachable from
+  Claude's workspace, so real-model runs happen on Sahil's laptop or the manual `real-model eval` workflow.
+- Break the thing a test guards once, to see the test go red.
+- Report measured numbers.
 
 ## Git
 

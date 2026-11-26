@@ -1,0 +1,27 @@
+# by hand (Actions tab -> real-model eval -> Run workflow): the graph with real Gemini on the golden set.
+# needs the repo secret GOOGLE_API_KEY. Fails if the gate in evaluate.py fails.
+name: real-model eval
+on:
+  workflow_dispatch:
+    inputs:
+      cases:
+        description: golden cases to run (plus the 9 hand claims)
+        default: "40"
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python data/make_data.py
+      - run: python evaluate.py ${{ inputs.cases }}
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: results/eval.json

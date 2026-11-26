@@ -1,5 +1,7 @@
 # ReturnLoop Agent
 
+[![tests](https://github.com/neomotion/ReturnLoopAgent/actions/workflows/tests.yml/badge.svg)](https://github.com/neomotion/ReturnLoopAgent/actions/workflows/tests.yml)
+
 An AI agent that investigates e-commerce return and refund claims. It looks up the claim,
 the customer's history, the carrier status and the merchant policy, then decides
 **approve / reject / review** and writes a reply to the customer.
@@ -35,6 +37,8 @@ py photos.py
 py search.py
 py agent.py
 py graph.py
+py evaluate.py 40
+pytest tests
 ```
 
 | File | What |
@@ -49,8 +53,31 @@ py graph.py
 | `vision_data.py` | builds the MVTec AD train/test sets and the shared prompt |
 | `vision_eval.py` | scoring + Gemini run on the vision test set |
 | `train_vision.ipynb` | Colab: base eval, QLoRA fine-tune of Qwen3-VL-2B, tuned eval |
+| `policy_rules.py` | the return policy as code: correct decision + required rules (golden set labels) |
+| `evaluate.py` | golden-set eval: accuracy, confusion, required-rule recall, grounding, gate |
+| `judge.py` | LLM judge for customer replies, human labelling, Cohen's kappa |
+| `tests/` | pytest suite with a fake Gemini (`fake_llm.py`) and planted mistakes |
 | `graph.py` | multi-agent LangGraph: evidence agent, vision, policy agent, decide, human review via interrupt, SQLite checkpoints |
 | `llm_config.py` | Gemini client through the OpenAI library |
+
+## Evals (phase 5)
+
+- **Policy as code.** `policy_rules.py` is the return policy written as plain Python. For any claim it
+  returns the correct decision and the policy sections an agent must look at to reach it.
+- **Golden set.** `make_data.py` generates 200 claims (4 claim types, 12 products, normal customers,
+  serial returners, new accounts, 10% with a prompt injection) and labels them with `policy_rules.py`:
+  115 reject, 46 approve, 39 review. The 9 hand-labelled claims must agree with it, or the build fails.
+- **`evaluate.py`** runs the graph on the 9 hand claims plus a stratified sample of the golden set and
+  reports decision accuracy, a confusion matrix, **required-rule recall** (did the policy agent retrieve
+  every rule the case needs?), ungrounded citations and seconds per case. Below the gate
+  (accuracy 0.85, rule recall 0.90, 0 ungrounded) it exits 1.
+- **Why rule recall:** a decision can be right for the wrong reasons. With the policy agent told to skip
+  the risk rules, accuracy stayed at 1.0 but rule recall fell to 0.76, and the gate failed.
+- **`judge.py`** grades customer replies (matches the decision, reveals no internal risk signals,
+  says what happens next). `py judge.py label` lets a human grade the same replies; `py judge.py`
+  reports agreement and Cohen's kappa per check, so the judge is only trusted where it agrees with a person.
+- **Tests.** `pytest tests` (10 tests, ~9 s, no API key) runs on every push through GitHub Actions,
+  using `tests/fake_llm.py`. A manual workflow runs the real-model eval with a `GOOGLE_API_KEY` secret.
 
 ## Local vision model (QLoRA)
 
