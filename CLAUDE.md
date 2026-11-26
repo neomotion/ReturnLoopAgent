@@ -43,7 +43,7 @@ How that looks in practice (taken from `tool_calling_loop.py`, `speed_test_json.
 | 1 ✅ | Single agent: claim, customer, delivery, policy tools; structured verdict; score vs expected | tool loop, structured output |
 | 2 ✅ | Tools as an MCP server; policy RAG (hybrid search + citations) over policy docs | MCP, agentic RAG |
 | 3 ✅ | LangGraph graph of specialist agents (evidence, policy, decide), human approval via `interrupt()`, SQLite checkpointer (Postgres when deployed) | multi-agent, HITL, durability |
-| 4 | Vision agent (damage photos, reused-photo check) | multimodal |
+| 4 ✅ | Vision step (does the photo show the damage?) + reused-photo check with a perceptual hash | multimodal |
 | 5 | Golden set (200 cases), LLM judge with κ, trajectory checks, CI gate | evals |
 | 6 | Prompt-injection red-team suite, tool permissions | security |
 | 7 | Langfuse tracing, cost/latency per case, model routing, caching | observability, cost |
@@ -55,7 +55,8 @@ How that looks in practice (taken from `tool_calling_loop.py`, `speed_test_json.
 ```
 py -m pip install -r requirements.txt
 copy .env.example .env      (then put your key in .env)
-py data\make_data.py        (creates data\returnloop.db)
+py data\make_data.py        (creates data\returnloop.db and data\photos)
+py photos.py                (perceptual hash check: md5 vs dHash distances)
 py search.py                (policy search eval: recall@3 / MRR for bm25, dense, hybrid)
 py agent.py                 (single agent: starts the MCP server, runs every claim, prints verdict vs expected)
 py graph.py                 (multi-agent graph; asks you approve/reject for review cases; resumes after a restart)

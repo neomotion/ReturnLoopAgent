@@ -12,10 +12,16 @@ it used. Citations the agent never retrieved are flagged as ungrounded.
 and only its own MCP tools:
 
 ```
-load_claim -> evidence agent (customer, delivery) -> policy agent (search_policy) -> decide
+load_claim -> evidence agent (customer, delivery) -> vision (photo) -> policy agent (search_policy) -> decide
                                                                      decide -> review? -> human_review (interrupt) -> END
                                                                             -> else   -> finish -> END
 ```
+
+The vision step runs only for claims with a photo. It sends the photo to Gemini and asks whether it
+shows the ordered product and the damage described, and calls the `check_photo_reuse` MCP tool, which
+compares a perceptual hash (dHash) of the photo with photos from earlier claims. A resaved copy of an
+old photo (resized, brighter, recompressed) has a different md5 but a dHash distance of 2/64;
+unrelated photos are 14 and 28 apart, so the reuse threshold is 8.
 
 Review cases pause for a human approve/reject. Every step is checkpointed to SQLite, so a run killed
 at the review prompt resumes exactly there, without redoing finished claims or agent calls.
@@ -25,6 +31,7 @@ See `CLAUDE.md` for the coding rules and the full plan.
 py -m pip install -r requirements.txt
 copy .env.example .env
 py data\make_data.py
+py photos.py
 py search.py
 py agent.py
 py graph.py
@@ -32,29 +39,30 @@ py graph.py
 
 | File | What |
 |---|---|
-| `data/make_data.py` | builds `returnloop.db`: customers, orders, deliveries, claims (with expected decisions) |
-| `data/policies/*.md` | the merchant's return policy, 5 docs, 19 sections |
-| `data/policy_questions.json` | 20 labelled questions for the search eval |
+| `data/make_data.py` | builds `returnloop.db` (customers, orders, deliveries, claims with expected decisions, past photo hashes) and draws the claim photos |
+| `photos.py` | dHash perceptual hash + distance, md5 vs dHash check |
+| `data/policies/*.md` | the merchant's return policy, 5 docs, 21 sections |
+| `data/policy_questions.json` | 22 labelled questions for the search eval |
 | `search.py` | chunking, BM25 + dense + RRF hybrid search, recall@3 / MRR eval |
-| `mcp_server.py` | MCP server: get_claim, get_customer, get_delivery, search_policy |
+| `mcp_server.py` | MCP server: get_claim, get_customer, get_delivery, check_photo_reuse, search_policy |
 | `agent.py` | single agent: MCP client + tool-calling loop, cited verdict, accuracy and grounding vs expected |
-| `graph.py` | multi-agent LangGraph: evidence + policy agents, decide, human review via interrupt, SQLite checkpoints |
+| `graph.py` | multi-agent LangGraph: evidence agent, vision, policy agent, decide, human review via interrupt, SQLite checkpoints |
 | `llm_config.py` | Gemini client through the OpenAI library |
 
 ## Results
 
-Policy search on 20 labelled questions (`py search.py`):
+Policy search on 22 labelled questions (`py search.py`):
 
 | | recall@3 | MRR |
 |---|---|---|
-| BM25 | 0.90 | 0.82 |
-| Dense (potion-base-8M) | 0.95 | 0.91 |
-| **Hybrid (RRF)** | **1.00** | 0.83 |
+| BM25 | 0.91 | 0.84 |
+| Dense (potion-base-8M) | 0.95 | 0.90 |
+| **Hybrid (RRF)** | **1.00** | 0.86 |
 
 Before fixing tokenisation (numbers like 20,000 split, no stemming) and adding doc titles to chunks,
 hybrid recall@3 was 0.81, below dense alone.
 
-Real run, Gemini flash-lite, 8 claims:
+Real run, Gemini flash-lite, the first 8 claims (before photos were added):
 
 | | decision accuracy | grounded citations |
 |---|---|---|
